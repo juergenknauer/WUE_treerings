@@ -1,0 +1,12 @@
+DNF = deciduous needle-leaf trees
+TDF = tropical deciduous trees
+ENF = evergreen needle-leaf trees
+DSH = deciduous shrubs
+EBF = evergreen broadleaf trees
+TRF = tropical evergreen trees
+DBF = deciduous broadleaf trees
+C3G = C3 grasses/herbs
+RSH = raingreen shrubs
+C3C = C3 crops
+C4G = C4 grasses/herbs
+C4C = C4 crops
