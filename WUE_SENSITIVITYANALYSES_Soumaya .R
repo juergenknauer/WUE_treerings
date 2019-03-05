@@ -5,19 +5,30 @@
 
 # define 2 functions for WUE: WUE_l $ WUE_c
 
+setwd('C:/Users/kna016/Documents/Projects/WUE_treerings/')
+
 # INPUT DATA --------------------------------------------------------------
 
-# read input file for all data
-data_TR<- read.csv("isonet_frank.csv", header=T) #time series of tree-rings 13C
+## read input file for all data
+#data_TR<- read.csv("isonet_frank.csv", header=T) #time series of tree-rings 13C
+data_TR<- read.csv("isonet_tr.csv", header=T) #time series of tree-rings 13C
 
-# data from CMIP6/ Graven et al 2017
-CMIP6 <- read.csv("~/Documents/GCB_PAPER_NE13C/ATM_GHG/TableS1_170710_submitted.csv", header=T)
-atm_13C <- ts(CMIP6$Global.delta13co2, start=1850, frequency = 1) # needs subsetting the data for the time window of obs
 
-# CO2 concentration data from SCRIPPS, spline ice core and merged obs downlanded June 5 2017
+startyear <- 1900
+endyear   <- 2003
+
+## data from CMIP6/ Graven et al 2017
+# CMIP6 <- read.csv("~/Documents/GCB_PAPER_NE13C/ATM_GHG/TableS1_170710_submitted.csv", header=T)
+CMIP6 <- read.csv("TableS1_170710_submitted.csv", header=T)
+# atm_13C <- ts(CMIP6$Global.delta13co2, start=1850, frequency = 1) # needs subsetting the data for the time window of obs
+atm_13C <- CMIP6[floor(CMIP6[,"Date"]) >= startyear & floor(CMIP6[,"Date"]) <= endyear,"Global.delta13co2"]
+
+## CO2 concentration data from SCRIPPS, spline ice core and merged obs downlanded June 5 2017
 CO2_atm <- read.csv("spline_merged_ice_core_yearly_SB.csv", header=T)
-atm_C <- ts(data= CO2_atm$CO2[CO2_atm$Year>=1901], start=1901, frequency = 1)# needs subsetting the data for the time window of obs
-
+# atm_C <- ts(data= CO2_atm$CO2[CO2_atm$Year>=1901], start=1901, frequency = 1) # needs subsetting the data for the time window of obs
+atm_C <- CO2_atm[CO2_atm[,"Year"] >= startyear & CO2_atm[,"Year"] <= endyear,"CO2"]
+  
+  
 
 leaf <- 2.1 # offset between leaf and stem
 btv <- 0.8 # between tree variability based on idividual tree measurements
@@ -50,24 +61,70 @@ b-27
 # wue_l
 
 
-# USE THE WUE FUNCTION IN JURGEN SCRIPT. OR MERGE THE TOP PART WITH JURGEN SCRIPT
-#WUE_l <- function(cat=atm_C, dplant= d13_plant ,datm=atm_13C,b=b)
-#{
-  a=4.4
-  big_delta= (datm-dplant)/(1+dplant/1000) #Discrimination Farquhar 1982
-  ciOca=(big_delta-a)/(b-a)
-  ci= cat*ciOca
-  caMci=cat-ci
-  I_WUE <- (cat-ci)/1.6
+## main function: calculates ci/ca and WUE from isotope data with different models
+WUE_isotopes <- function(ca=atm_C, dplant=d13_plant, datm=atm_13C, 
+                         a     = 4.4,   # fractionation during CO2 diffusion through stomata
+                         b_lin = 27,    # fractionation during carboxylation in the simple model 
+                         b     = 30,    # fractionation during carboxylation
+                         am    = 1.8,   # fractionation during internal CO2 transfer
+                         f     = 12,    # fractionation during photorespiration
+                         gam   = 43,    # gamma_star
+                         An    = 9,     # net assimilation
+                         gm    = 0.2,   # mesophyll conductance
+                         model = c('linear','classical')){
+
+  model <- match.arg(model)
   
-  result <- list(iwue_l=I_WUE,
-                 ci_l=ci, 
-                 big_delta_l=big_delta,
-                 rt= (big_delta-a)/(b-a))
+  big_delta = (datm-dplant)/(1+dplant/1000) # Discrimination Farquhar 1982
   
-  return(result)
+  if (model == 'linear'){
+  
+    ciOca = (big_delta - a) / (b_lin - a)
+  
+  } else if (model == 'classical'){
+    
+    ciOca = ((b - am) * An/(gm * ca) + f*gam/ca - a + big_delta) / (b - a)  # Eq. 6 in Seibt et al. 2008 solved for Ci/Ca
+    
+  }
+
+  ci    <- ca * ciOca
+  caMci <- ca-ci
+  iWUE  <- (ca-ci)/1.6
+  
+  
+  return(data.frame(ci,ciOca,caMci,iWUE,big_delta))
   
 }
+
+
+## some tests with the function:
+WUE_isotopes(ca=380,dplant=-29,datm=-8,model='linear')
+WUE_isotopes(ca=380,dplant=-29,datm=-8,model='classical')              # with default arguments (see function definition)
+WUE_isotopes(ca=380,dplant=-29,datm=-8,model='classical',gm=0.1,An=4)  # changing some arguments (see function definition)
+
+
+# first test with real data
+COL_CA_simple    = WUE_isotopes(ca=atm_C,dplant=data_TR[,"COL_CA"],datm=atm_13C,model='linear')
+COL_CA_classical = WUE_isotopes(ca=atm_C,dplant=data_TR[,"COL_CA"],datm=atm_13C,model='classical')
+
+# plot
+par(mfrow=c(1,1),mar=c(4,5,1,1))
+plot(COL_CA_simple[,'ciOca'] ~ c(startyear:endyear),type='l',ylim=c(0.4,0.7),xlab='Year',ylab='Ci/Ca',main='COL_CA')
+points(COL_CA_classical[,'ciOca'] ~ c(startyear:endyear),type='l',col='green3')
+legend('topleft',c('simple','classical'),col=c('black','green3'),lty=1,bty='n',y.intersp=1.5)
+
+dev.copy2pdf(file="C:/Users/kna016/Documents/Projects/WUE_treerings/plots/COL_CA.pdf",
+             width=6,height=4)
+
+
+# next steps:
+# - loop over all sites
+# - determine values for An and gm
+
+
+
+
+
 
 
 
@@ -103,9 +160,17 @@ b=30 # fractionation during carboxylation as set in the Original Farquhar model
 # VALUES ARE : 4 PEMIL FOR F; 3 PERMIL FOR A; 0.05 PERMIL FOR GI
 
 uncert_f <- 4+3+0.05 
+
+
+ci equation will be in WUE_c function
+ci_c= ((Δ+(f*Γ/ca)+(((b1-am)*A)/(ca*gi))-a)*ca)/ (b1-a)  # JK: where does this one come from?
+
+
   
-# ci equation will be in WUE_c function
-ci_c= ((Δ+(f*Γ/ca)+(((b1-am)*A)/(ca*gi))-a)*ca)/ (b1-a)
+  
+  
+
+
 
 
 # ADDITIONAL DISC FROM KEELING --------------------------------------------
