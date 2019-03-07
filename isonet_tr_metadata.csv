@@ -1,0 +1,24 @@
+Site Abbreviation,Longitude ,Latitude ,Elevation,Species_Abbrivation,genus,species
+COL,-5.07,32.97,2200,CA,cedrus,atlantica
+CAZ,-2.96,37.81,1820,PN,pinus,nigra
+SER,16.2,39.93,1900,PL,pinus,leucodermis
+PED,1.7,42.24,2120,PU,pinus,unincita
+LIL,-5.25,43.07,1600,PS,pinus,sylvestris
+CAV,8.6,46.35,900,QP,quercus,petraea
+VIG,8.77,46.5,1400,PS,pinus,sylvestris
+POE,16.06,47.95,500,PS,pinus,sylvestris
+LAI,16.2,48.18,300,QP,quercus,petraea
+REN,-1.7,48.25,100,QR,quercus,robur
+FON,2.67,48.38,100,QP,quercus,petraea
+NIE1,20.38,50.12,190,QR,quercus,robur
+NIE2,20.38,50.12,190,PS,pinus,sylvestris
+WIN,-0.59,51.41,10,PS,pinus,sylvestris
+DRA,9.78,51.5,320,QP,quercus,petraea
+WOB,-0.59,51.98,50,QR,quercus,robur
+SUW,22.93,54.1,160,PS,pinus,sylvestris
+PAN,23.97,54.88,45,PS,pinus,sylvestris
+LCH,-3.43,55.27,175,QR,quercus,robur
+BRO,23.08,60,5,QR,quercus,robur
+GUT,12.18,62,800,PS,pinus,sylvestris
+ILO,30.98,62.98,200,PS,pinus,sylvestris
+INA,28.42,68.93,150,PS,pinus,sylvestris
