@@ -11,11 +11,12 @@ setwd('C:/Users/kna016/Documents/Projects/WUE_treerings/')
 
 ## read input file for all data
 #data_TR<- read.csv("isonet_frank.csv", header=T) #time series of tree-rings 13C
-data_TR<- read.csv("isonet_tr.csv", header=T) #time series of tree-rings 13C
-
+data_TR     <- read.csv("isonet_tr.csv", header=T) #time series of tree-rings 13C
+metadata_TR <- read.csv("isonet_tr_metadata.csv", header=T)
 
 startyear <- 1900
 endyear   <- 2003
+nr_years  <- 2003-1900 + 1
 
 ## data from CMIP6/ Graven et al 2017
 # CMIP6 <- read.csv("~/Documents/GCB_PAPER_NE13C/ATM_GHG/TableS1_170710_submitted.csv", header=T)
@@ -103,23 +104,74 @@ WUE_isotopes(ca=380,dplant=-29,datm=-8,model='classical')              # with de
 WUE_isotopes(ca=380,dplant=-29,datm=-8,model='classical',gm=0.1,An=4)  # changing some arguments (see function definition)
 
 
-# first test with real data
-COL_CA_simple    = WUE_isotopes(ca=atm_C,dplant=data_TR[,"COL_CA"],datm=atm_13C,model='linear')
-COL_CA_classical = WUE_isotopes(ca=atm_C,dplant=data_TR[,"COL_CA"],datm=atm_13C,model='classical')
-
-# plot
-par(mfrow=c(1,1),mar=c(4,5,1,1))
-plot(COL_CA_simple[,'ciOca'] ~ c(startyear:endyear),type='l',ylim=c(0.4,0.7),xlab='Year',ylab='Ci/Ca',main='COL_CA')
-points(COL_CA_classical[,'ciOca'] ~ c(startyear:endyear),type='l',col='green3')
-legend('topleft',c('simple','classical'),col=c('black','green3'),lty=1,bty='n',y.intersp=1.5)
-
-dev.copy2pdf(file="C:/Users/kna016/Documents/Projects/WUE_treerings/plots/COL_CA.pdf",
-             width=6,height=4)
 
 
-# next steps:
-# - loop over all sites
-# - determine values for An and gm
+
+### loop over sites
+## assumptions: 
+# - trend of An of 40% since 1900
+# - genus-specific and constant gm 
+
+results_simple    <- list()
+results_classical <- list()
+
+
+sites <- colnames(data_TR)[-1]
+
+# plot settings
+col_simple    <- "black"
+col_classical <- "green3"
+col_classical_const <- "cyan"
+
+
+for (s in seq_along(sites)){
+  
+  site   <- sites[s]
+  
+  if (metadata_TR[s,'genus'] %in% c("cedrus","pinus")){   #important: order of sites in data_tr and metadata_tr assumed to be the same 
+    #gm <- seq(0.08,0.18,length.out=nr_years)
+    gm <- 0.08
+    An <- seq(5,5+0.4*5,length.out=nr_years)
+    An_const <- 5
+  } else if (metadata_TR[s,'genus'] %in% c("quercus")){
+    gm <- 0.17
+    An <- seq(7,7+0.4*7,length.out=nr_years)
+    An_const <- 7
+  }
+  
+  
+  simple          <- WUE_isotopes(ca=atm_C,dplant=data_TR[,site],datm=atm_13C,model='linear')
+  classical       <- WUE_isotopes(ca=atm_C,dplant=data_TR[,site],datm=atm_13C,model='classical',An=An,gm=gm)
+  classical_const <- WUE_isotopes(ca=atm_C,dplant=data_TR[,site],datm=atm_13C,model='classical',An=An_const,gm=gm)
+  
+  
+  # plots
+  if (s == 1){
+    par(mfrow=c(2,3),mar=c(5,4,2,1))
+    plot_counter <- 0
+  }
+  plot(simple[,'ciOca'] ~ c(startyear:endyear),type='l',ylim=c(0.4,0.9),xlab='Year',ylab='Ci/Ca',main=site,col=col_simple)
+  points(classical[,'ciOca'] ~ c(startyear:endyear),type='l',col=col_classical)
+  points(classical_const[,'ciOca'] ~ c(startyear:endyear),type='l',col=col_classical_const)
+  if (s %% 6 == 1){
+    plot_counter <- plot_counter + 1
+    legend('topleft',c('simple','classical (const An)','classical'),col=c(col_simple,col_classical_const,col_classical),
+           lty=1,bty='n',y.intersp=1.5)
+  } else if (s %% 6 == 0){
+    
+    dev.copy2pdf(file=paste0("C:/Users/kna016/Documents/Projects/WUE_treerings/plots/simple_classical_",plot_counter,".pdf"),
+                 width=12,height=8)
+    graphics.off()
+    par(mfrow=c(2,3),mar=c(5,4,2,1))
+  }
+  
+  # save to list
+  results_simple[[s]]    <- simple 
+  results_classical[[s]] <- classical
+}
+
+names(results_simple)    <- sites
+names(results_classical) <- sites
 
 
 
